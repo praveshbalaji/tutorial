@@ -1,130 +1,115 @@
-const Tutorial = require("../models/tutorial.model.js");
+const { UploadedQuestions, Tutorial } = require('../models/tutorial.model'); // Adjust the path as necessary
 
-// Create and Save a new Tutorial
 exports.create = (req, res) => {
-  // Validate request
-  if (!req.body) {
-    res.status(400).send({
-      message: "Content can not be empty!"
-    });
+  const { 
+    selectedClass, 
+    selectedSubject, 
+    notcomplete,
+    examTitle, 
+    selectedDate, 
+    selectedTime, 
+    questions, 
+    options, 
+    answers 
+  } = req.body;
+
+  // Validate required fields
+  if (!questions || !options || !answers) {
+    return res.status(400).send({ message: "Questions, options, and answers are required." });
   }
 
-  // Create a Tutorial
-  const tutorial = new Tutorial({
-    title: req.body.title,
-    description: req.body.description,
-    published: req.body.published || false
-  });
+  const newTutorial = {
+    class: selectedClass,
+    Subject: selectedSubject,
+    notcomplete: notcomplete,
+    Title: examTitle,
+    examTitle:examTitle,
+    ExamDate: selectedDate,
+    TimeRange: selectedTime,
+    questions: JSON.stringify(questions),
+    options: JSON.stringify(options),
+    answers: JSON.stringify(answers),
+    createdDate: new Date()
+  };
 
-  // Save Tutorial in the database
-  Tutorial.create(tutorial, (err, data) => {
-    if (err)
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while creating the Tutorial."
-      });
-    else res.send(data);
-  });
-};
-
-// Retrieve all Tutorials from the database (with condition).
-exports.findAll = (req, res) => {
-  const title = req.query.title;
-
-  Tutorial.getAll(title, (err, data) => {
-    if (err)
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while retrieving tutorials."
-      });
-    else res.send(data);
-  });
-};
-
-// Find a single Tutorial by Id
-exports.findOne = (req, res) => {
-  Tutorial.findById(req.params.id, (err, data) => {
+  UploadedQuestions.create(newTutorial, (err, data) => {
     if (err) {
-      if (err.kind === "not_found") {
-        res.status(404).send({
-          message: `Not found Tutorial with id ${req.params.id}.`
-        });
-      } else {
-        res.status(500).send({
-          message: "Error retrieving Tutorial with id " + req.params.id
-        });
-      }
-    } else res.send(data);
-  });
-};
-
-// find all published Tutorials
-exports.findAllPublished = (req, res) => {
-  Tutorial.getAllPublished((err, data) => {
-    if (err)
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while retrieving tutorials."
-      });
-    else res.send(data);
-  });
-};
-
-// Update a Tutorial identified by the id in the request
-exports.update = (req, res) => {
-  // Validate Request
-  if (!req.body) {
-    res.status(400).send({
-      message: "Content can not be empty!"
-    });
-  }
-
-  console.log(req.body);
-
-  Tutorial.updateById(
-    req.params.id,
-    new Tutorial(req.body),
-    (err, data) => {
-      if (err) {
-        if (err.kind === "not_found") {
-          res.status(404).send({
-            message: `Not found Tutorial with id ${req.params.id}.`
-          });
-        } else {
-          res.status(500).send({
-            message: "Error updating Tutorial with id " + req.params.id
-          });
-        }
-      } else res.send(data);
+      return res.status(500).send({ message: err.message || "Some error occurred while creating the tutorial." });
     }
-  );
+    res.status(201).send(data);
+  });
 };
+exports.findAll = (req, res) => {
+  const { class: studentClass } = req.query; // Retrieve the class query parameter
 
-// Delete a Tutorial with the specified id in the request
-exports.delete = (req, res) => {
-  Tutorial.remove(req.params.id, (err, data) => {
+  UploadedQuestions.getAll(studentClass, (err, data) => {
     if (err) {
-      if (err.kind === "not_found") {
-        res.status(404).send({
-          message: `Not found Tutorial with id ${req.params.id}.`
-        });
-      } else {
-        res.status(500).send({
-          message: "Could not delete Tutorial with id " + req.params.id
-        });
-      }
-    } else res.send({ message: `Tutorial was deleted successfully!` });
+      return res.status(500).send({
+        message: err.message || "Some error occurred while retrieving uploaded questions."
+      });
+    }
+    res.send(data);
   });
 };
 
-// Delete all Tutorials from the database.
-exports.deleteAll = (req, res) => {
-  Tutorial.removeAll((err, data) => {
-    if (err)
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while removing all tutorials."
-      });
-    else res.send({ message: `All Tutorials were deleted successfully!` });
+exports.findAnswer = (req, res) => {
+  const studentClass = req.query.class; // Get class from query parameters
+  const subject = req.query.subject;   // Get subject from query parameters
+
+  // Call the model function with class and subject
+  UploadedQuestions.getAllanswer(studentClass, subject, (err, data) => {
+      if (err) {
+          return res.status(500).send({ message: err.message || "Some error occurred while retrieving answers." });
+      }
+      res.send(data); // Send the retrieved data as the response
   });
 };
+
+
+exports.deleteAll = (req, res) => {
+  UploadedQuestions.removeAll((err, data) => {
+    if (err) {
+      return res.status(500).send({ message: err.message || "Some error occurred while deleting tutorials." });
+    }
+    res.send({ message: 'All tutorials deleted successfully!' });
+  });
+};
+
+exports.findAllstd = (req, res) => {
+  // Assuming you're using a query parameter for student class
+  const studentClass = req.query.class; // Change this according to how you're sending the class data
+  console.log('Fetching all students for class:', studentClass);
+
+  // Ensure to pass the studentClass and a callback
+  UploadedQuestions.getAllstd(studentClass, (err, data) => {
+    if (err) {
+      return res.status(500).send({
+        message: err.message || "Some error occurred while retrieving tutorials."
+      });
+    }
+    res.send(data);
+  });
+};
+
+exports.findAll2 = (req, res) => {
+  UploadedQuestions.getAllnoanswer(req.query.studentClass, (err, data) => {
+    if (err) {
+      return res.status(500).send({
+        message: err.message || "Some error occurred while retrieving questions."
+      });
+    }
+    res.send(data);
+  });
+};
+
+exports.completedstd = (req, res) => {
+  const { rollnumber, class: selectedClass } = req.query;
+
+  Tutorial.getAllByRollNumberAndClass(rollnumber, selectedClass, (err, data) => {
+      if (err) {
+          return res.status(500).send({ message: err.message || "Some error occurred while retrieving tutorials." });
+      }
+      res.send(data);
+  });
+};
+
